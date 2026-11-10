@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Animated,
   Easing,
+  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ASSETS } from '../../theme';
@@ -16,12 +17,14 @@ interface BiometricIndicatorProps {
   status: BiometricStatus;
   title?: string;
   subtitle?: string;
+  onPress?: () => void;
 }
 
 export const BiometricIndicator: React.FC<BiometricIndicatorProps> = ({
   status,
   title = 'Control de Acceso',
   subtitle = 'Terminal de Identificación',
+  onPress,
 }) => {
   // Valores animados
   const spinValue = useRef(new Animated.Value(0)).current;
@@ -283,7 +286,12 @@ export const BiometricIndicator: React.FC<BiometricIndicatorProps> = ({
       </View>
 
       {/* Contenedor biométrico redondeado en tamaño grande */}
-      <View style={styles.biometricCenterArea}>
+      <TouchableOpacity
+        activeOpacity={onPress ? 0.85 : 1}
+        onPress={onPress}
+        disabled={!onPress}
+        style={styles.biometricCenterArea}
+      >
         <Animated.View
           style={[
             styles.biometricCircle,
@@ -372,7 +380,7 @@ export const BiometricIndicator: React.FC<BiometricIndicatorProps> = ({
             <Ionicons name="close-circle" size={155} color="#EF4444" />
           </Animated.View>
         </Animated.View>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 };

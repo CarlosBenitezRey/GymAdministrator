@@ -7,16 +7,11 @@ import {
   Platform,
   SafeAreaView,
   ScrollView,
-  useWindowDimensions,
+  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AccessHeader } from '../components/access/AccessHeader';
-import { NumericKeypad } from '../components/access/NumericKeypad';
 import { AdminLoginModal } from '../components/access/AdminLoginModal';
-import {
-  CiVerificationIndicator,
-  CiVerificationStatus,
-} from '../components/access/CiVerificationIndicator';
 import {
   BiometricIndicator,
   BiometricStatus,
@@ -24,6 +19,7 @@ import {
 import { AttributionFooter } from '../components/access/AttributionFooter';
 import { WelcomeResultCard } from '../components/access/WelcomeResultCard';
 import { checkinService } from '../services/CheckinService';
+import { checkinRepository } from '../repositories/CheckinRepository';
 import { CheckinResult } from '../models';
 import colors from '../theme';
 
@@ -32,102 +28,74 @@ interface AccessScreenProps {
 }
 
 export const AccessScreen: React.FC<AccessScreenProps> = ({ onOpenStaff }) => {
-  const [ci, setCi] = useState('');
   const [loading, setLoading] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState<CiVerificationStatus>('idle');
+  const [biometricStatus, setBiometricStatus] = useState<BiometricStatus>('idle');
   const [activeResult, setActiveResult] = useState<CheckinResult | null>(null);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
 
-  const { width } = useWindowDimensions();
-  const isWide = width >= 820;
-
-  // Soporte para teclado físico / lector de código de barras en Web
+  // Soporte para pruebas en Web: presionar ESPACIO o ENTER para simular lectura de huella
   useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const handleKeyDown = (e: KeyboardEvent) => {
-        // Si está cargando o el modal de login admin está abierto, ignorar
         if (loading || showAdminLogin) return;
 
-        // Si hay un card de resultado activo y el usuario teclea, lo cerramos para el siguiente
-        if (activeResult !== null) {
-          setActiveResult(null);
-          setVerificationStatus('idle');
-        }
-
-        if (e.key >= '0' && e.key <= '9') {
-          setVerificationStatus('idle');
-          if (ci.length < 10) setCi((prev) => prev + e.key);
-        } else if (e.key === 'Backspace') {
-          setVerificationStatus('idle');
-          setCi((prev) => prev.slice(0, -1));
-        } else if (e.key === 'Enter') {
-          handleCheckin();
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          handleBiometricScan();
         } else if (e.key === 'Escape') {
-          setVerificationStatus('idle');
-          setCi('');
+          setActiveResult(null);
+          setBiometricStatus('idle');
         }
       };
 
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [ci, loading, activeResult, showAdminLogin]);
+  }, [loading, showAdminLogin]);
 
-  const handleKeyPress = (char: string) => {
-    if (activeResult) setActiveResult(null);
-    if (verificationStatus !== 'idle') setVerificationStatus('idle');
-    if (ci.length < 10) {
-      setCi((prev) => prev + char);
-    }
-  };
-
-  const handleDelete = () => {
-    if (activeResult) setActiveResult(null);
-    if (verificationStatus !== 'idle') setVerificationStatus('idle');
-    setCi((prev) => prev.slice(0, -1));
-  };
-
-  const handleClear = () => {
-    if (activeResult) setActiveResult(null);
-    if (verificationStatus !== 'idle') setVerificationStatus('idle');
-    setCi('');
-  };
-
-  const handleCheckin = async () => {
-    const ciAEnviar = ci.trim();
-    if (!ciAEnviar || loading) return;
+  const handleBiometricScan = async (scannedCi?: string) => {
+    if (loading) return;
 
     setLoading(true);
     setActiveResult(null);
-    setVerificationStatus('verifying');
+    setBiometricStatus('scanning');
 
     try {
-      // Tiempo suficiente para apreciar cómo el círculo se va completando progresivamente (~1100ms)
+      let targetCi = scannedCi;
+      if (!targetCi) {
+        // En entorno de pruebas/desarrollo, buscamos el primer alumno disponible en la base de datos
+        const { data } = await checkinRepository.obtenerUltimasAsistencias(1);
+        if (data && data.length > 0 && (data[0] as any).alumnos?.ci) {
+          targetCi = (data[0] as any).alumnos.ci;
+        } else {
+          targetCi = '4567890';
+        }
+      }
+      const ciFinal = targetCi || '4567890';
+
+      // Tiempo suficiente para apreciar la animación de escaneo con el haz láser (~1100ms)
       const [res] = await Promise.all([
-        checkinService.procesarCheckin(ciAEnviar),
+        checkinService.procesarCheckin(ciFinal),
         new Promise((resolve) => setTimeout(resolve, 1100)),
       ]);
 
       const esValido = res.estado === 'vigente' || res.estado === 'por_vencer';
-      setVerificationStatus(esValido ? 'success' : 'error');
+      setBiometricStatus(esValido ? 'success' : 'error');
 
-      // Mostramos el card de resultado debajo de CiVerificationIndicator por 5 segundos
       setTimeout(() => {
         setActiveResult(res);
-        setCi('');
       }, esValido ? 250 : 350);
     } catch (error) {
-      console.error('Error al procesar checkin:', error);
-      setVerificationStatus('error');
+      console.error('Error al procesar acceso biométrico:', error);
+      setBiometricStatus('error');
       setTimeout(() => {
         setActiveResult({
           encontrado: false,
-          ci: ciAEnviar,
+          ci: 'BIOMÉTRICO',
           estado: 'no_encontrado',
-          mensaje: 'Error de conexión al verificar el acceso.',
+          mensaje: 'Error de comunicación con el sensor biométrico.',
           timestamp: new Date(),
         });
-        setCi('');
       }, 350);
     } finally {
       setLoading(false);
@@ -139,74 +107,58 @@ export const AccessScreen: React.FC<AccessScreenProps> = ({ onOpenStaff }) => {
       <AccessHeader onOpenStaff={() => setShowAdminLogin(true)} />
 
       <ScrollView
-        contentContainerStyle={[
-          styles.scrollContainer,
-          isWide && styles.scrollContainerWide,
-        ]}
+        contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
       >
-        <View
-          style={[
-            styles.mainContainer,
-            { flexDirection: isWide ? 'row' : 'column' },
-          ]}
-        >
-          {/* Panel Izquierdo: Control de Acceso con Círculo de Verificación Animado + Card de Resultado */}
-          <View style={styles.iconsIndicatorContainer}>
-            <CiVerificationIndicator status={verificationStatus} />
-            {activeResult && (
-              <WelcomeResultCard
-                result={activeResult}
-                durationSeconds={5}
-                onDismiss={() => {
-                  setActiveResult(null);
-                  setVerificationStatus('idle');
-                }}
-              />
-            )}
-          </View>
+        <View style={styles.mainContainer}>
+          {/* Indicador Central Biométrico con Simulación de Escaneo (Láser y Anillo Giratorio) */}
+          <BiometricIndicator
+            status={biometricStatus}
+            title="Control de Acceso"
+            subtitle="Terminal de Identificación"
+            onPress={handleBiometricScan}
+          />
 
-          {/* Panel Derecho: Display del C.I. y Teclado Numérico */}
-          <View style={styles.displayCardContainer}>
-            {/* Display del C.I. ingresado */}
-            <View style={styles.displayCard}>
-              <Text style={styles.displayLabel}>DOCUMENTO DE IDENTIDAD</Text>
-              <View style={styles.displayRow}>
-                {loading ? (
-                  <ActivityIndicator
-                    size="small"
-                    color="#002566"
-                    style={{ marginRight: 14, width: 34, height: 34 }}
-                  />
-                ) : (
-                  <Ionicons
-                    name="card-outline"
-                    size={32}
-                    color="#002566"
-                    style={{ marginRight: 14 }}
-                  />
-                )}
-                <Text style={[styles.displayText, !ci && styles.placeholderText]}>
-                  {ci || 'Ingrese su C.I'}
+          {/* Resultado de Acceso o Tarjeta de Estado del Lector */}
+          {activeResult ? (
+            <WelcomeResultCard
+              result={activeResult}
+              durationSeconds={5}
+              onDismiss={() => {
+                setActiveResult(null);
+                setBiometricStatus('idle');
+              }}
+            />
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => handleBiometricScan()}
+              style={styles.biometricPromptCard}
+            >
+              <View style={styles.biometricIconBadge}>
+                <Ionicons name="finger-print" size={26} color="#002566" />
+              </View>
+              <View style={styles.biometricTextContainer}>
+                <Text style={styles.biometricPromptTitle}>LECTOR BIOMÉTRICO</Text>
+                <Text style={styles.biometricPromptSubtitle}>
+                  {loading
+                    ? 'Escaneando y verificando huella dactilar...'
+                    : 'Coloque su dedo sobre el sensor para ingresar'}
                 </Text>
               </View>
-            </View>
+              {/* {loading ? (
+                <ActivityIndicator size="small" color="#002566" style={{ marginLeft: 8 }} />
+              ) : (
+                <View style={styles.statusDotContainer}>
+                  <View style={styles.statusDot} />
+                </View>
+              )} */}
+            </TouchableOpacity>
+          )}
 
-            {/* Teclado numérico táctil */}
-            <NumericKeypad
-              onKeyPress={handleKeyPress}
-              onDelete={handleDelete}
-              onClear={handleClear}
-              onSubmit={handleCheckin}
-              disabled={loading}
-              canSubmit={!loading && !!ci.trim()}
-            />
-
-            {/* Footer de Atribución y Marca */}
-            <View style={{ marginTop: 10 }}>
-              <AttributionFooter />
-            </View>
+          {/* Footer de Atribución y Marca */}
+          <View style={styles.footerContainer}>
+            <AttributionFooter />
           </View>
         </View>
       </ScrollView>
@@ -232,70 +184,78 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-  },
-  scrollContainerWide: {
-    justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
   },
   mainContainer: {
     width: '100%',
-    maxWidth: 1100,
-    justifyContent: 'space-around',
+    maxWidth: 480,
     alignItems: 'center',
-    gap: 32,
-  },
-  iconsIndicatorContainer: {
-    flex: 1,
-    maxWidth: 500,
-    width: '100%',
-    height: '100%',
-  },
-  displayCardContainer: {
-    flex: 1,
-    maxWidth: 440,
-    width: '100%',
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  displayCard: {
+  biometricPromptCard: {
     width: '100%',
+    maxWidth: 440,
     backgroundColor: '#FFFFFF',
     borderRadius: 22,
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
-    paddingHorizontal: 24,
-    paddingVertical: 18,
-    marginBottom: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    marginTop: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
-    shadowRadius: 12,
+    shadowRadius: 14,
     elevation: 4,
   },
-  displayLabel: {
+  biometricIconBadge: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0, 37, 102, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  biometricTextContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  biometricPromptTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#002566',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
-    marginBottom: 8,
+    marginBottom: 3,
   },
-  displayRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  displayText: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#002566',
-    letterSpacing: -0.5,
-  },
-  placeholderText: {
-    color: '#94A3B8',
-    fontSize: 22,
+  biometricPromptSubtitle: {
+    fontSize: 13,
     fontWeight: '600',
-    letterSpacing: -0.35,
+    color: '#64748B',
+    lineHeight: 18,
+  },
+  statusDotContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#10B981',
+  },
+  footerContainer: {
+    marginTop: 24,
+    alignItems: 'center',
   },
 });

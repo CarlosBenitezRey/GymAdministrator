@@ -7,6 +7,7 @@ import {
   Animated,
   Easing,
   ImageSourcePropType,
+  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -18,6 +19,8 @@ interface CiVerificationIndicatorProps {
   subtitle?: string;
   imageSource?: ImageSourcePropType;
   iconName?: keyof typeof Ionicons.glyphMap;
+  badgeIcon?: keyof typeof Ionicons.glyphMap;
+  onPress?: () => void;
 }
 
 const DIAMETER = 290;
@@ -32,6 +35,8 @@ export const CiVerificationIndicator: React.FC<CiVerificationIndicatorProps> = (
   subtitle = 'Verificación de C.I.',
   imageSource,
   iconName = 'lock-closed',
+  badgeIcon,
+  onPress,
 }) => {
   // Progreso animado del círculo (0 a 100)
   const progressValue = useRef(new Animated.Value(0)).current;
@@ -268,7 +273,11 @@ export const CiVerificationIndicator: React.FC<CiVerificationIndicatorProps> = (
       {/* Encabezado: Escudo/Tarjeta + Título */}
       <View style={styles.headerRow}>
         <View style={styles.badge}>
-          <Ionicons name="card-outline" size={42} color="#002566" />
+          <Ionicons
+            name={badgeIcon ?? (imageSource ? 'finger-print-outline' : 'card-outline')}
+            size={42}
+            color="#002566"
+          />
         </View>
         <View style={styles.headerTexts}>
           <Text style={styles.titleText}>{title}</Text>
@@ -277,7 +286,12 @@ export const CiVerificationIndicator: React.FC<CiVerificationIndicatorProps> = (
       </View>
 
       {/* Círculo de verificación con progreso animado */}
-      <View style={styles.centerArea}>
+      <TouchableOpacity
+        activeOpacity={onPress ? 0.85 : 1}
+        onPress={onPress}
+        disabled={!onPress}
+        style={styles.centerArea}
+      >
         <Animated.View
           style={[
             styles.outerCircle,
@@ -438,7 +452,7 @@ export const CiVerificationIndicator: React.FC<CiVerificationIndicatorProps> = (
             </Animated.View>
           </View>
         </Animated.View>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -577,7 +591,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   customImage: {
-    width: 160,
-    height: 160,
+    width: 150,
+    height: 150,
+    tintColor: '#002566',
   },
 });
