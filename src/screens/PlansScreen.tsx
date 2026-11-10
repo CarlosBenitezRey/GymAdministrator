@@ -21,8 +21,9 @@ export const PlansScreen: React.FC = () => {
   const [planes, setPlanes] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal Nuevo Plan
+  // Modal Nuevo / Editar Plan
   const [modalVisible, setModalVisible] = useState(false);
+  const [planAEditar, setPlanAEditar] = useState<Plan | null>(null);
   const [nombre, setNombre] = useState('');
   const [periodicidad, setPeriodicidad] = useState<Periodicidad>('mensual');
   const [duracionDias, setDuracionDias] = useState('30');
@@ -46,6 +47,24 @@ export const PlansScreen: React.FC = () => {
     cargarPlanes();
   }, []);
 
+  const handleAbrirNuevoPlan = () => {
+    setPlanAEditar(null);
+    setNombre('');
+    setPeriodicidad('mensual');
+    setDuracionDias('30');
+    setPrecio('');
+    setModalVisible(true);
+  };
+
+  const handleAbrirEditarPlan = (plan: Plan) => {
+    setPlanAEditar(plan);
+    setNombre(plan.nombre);
+    setPeriodicidad(plan.periodicidad);
+    setDuracionDias(String(plan.duracion_dias));
+    setPrecio(String(plan.precio));
+    setModalVisible(true);
+  };
+
   const handleSeleccionarPeriodicidad = (p: Periodicidad) => {
     setPeriodicidad(p);
     // Sugerencia de días estándar según periodicidad
@@ -68,7 +87,7 @@ export const PlansScreen: React.FC = () => {
     }
   };
 
-  const handleCrearPlan = async () => {
+  const handleGuardarPlan = async () => {
     const nombreLimpio = nombre.trim();
     const precioNum = parseFloat(precio.replace(/[^0-9]/g, ''));
     const diasNum = parseInt(duracionDias, 10);
@@ -88,24 +107,35 @@ export const PlansScreen: React.FC = () => {
 
     setGuardando(true);
     try {
-      await planService.crearPlan({
-        nombre: nombreLimpio,
-        periodicidad,
-        duracion_dias: diasNum,
-        precio: precioNum,
-      });
+      if (planAEditar?.id) {
+        await planService.actualizarPlan(planAEditar.id, {
+          nombre: nombreLimpio,
+          periodicidad,
+          duracion_dias: diasNum,
+          precio: precioNum,
+        });
+        Alert.alert('Éxito', `El plan "${nombreLimpio}" ha sido actualizado correctamente.`);
+      } else {
+        await planService.crearPlan({
+          nombre: nombreLimpio,
+          periodicidad,
+          duracion_dias: diasNum,
+          precio: precioNum,
+        });
+        Alert.alert('Éxito', `El plan "${nombreLimpio}" ha sido creado y habilitado para ventas.`);
+      }
 
       // Limpiar formulario y cerrar
       setNombre('');
       setPrecio('');
       setDuracionDias('30');
       setPeriodicidad('mensual');
+      setPlanAEditar(null);
       setModalVisible(false);
 
       await cargarPlanes();
-      Alert.alert('Éxito', `El plan "${nombreLimpio}" ha sido creado y habilitado para ventas.`);
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'No se pudo crear el plan.');
+      Alert.alert('Error', err.message || 'No se pudo guardar el plan.');
     } finally {
       setGuardando(false);
     }
@@ -219,17 +249,29 @@ export const PlansScreen: React.FC = () => {
                 { color: isActivo ? '#34D399' : '#94A3B8' },
               ]}
             >
-              {isActivo ? 'ACTIVO (Para ventas)' : 'INACTIVO (Pausado)'}
+              {isActivo ? 'ACTIVO' : 'INACTIVO'}
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.btnEliminar}
-            onPress={() => handleEliminarPlan(item)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="trash-outline" size={18} color="#EF4444" style={{ marginRight: 0 }} />
-          </TouchableOpacity>
+          <View style={styles.cardButtonsGroup}>
+            <TouchableOpacity
+              style={styles.btnEditar}
+              onPress={() => handleAbrirEditarPlan(item)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="pencil-outline" size={15} color="#002566" style={{ marginRight: 5 }} />
+              <Text style={styles.btnEditarText}>Editar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.btnEliminar}
+              onPress={() => handleEliminarPlan(item)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="trash-outline" size={15} color="#EF4444" style={{ marginRight: 5 }} />
+              <Text style={styles.btnEliminarText}>Eliminar</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -246,7 +288,7 @@ export const PlansScreen: React.FC = () => {
 
         <TouchableOpacity
           style={styles.btnNuevo}
-          onPress={() => setModalVisible(true)}
+          onPress={handleAbrirNuevoPlan}
           activeOpacity={0.8}
         >
           <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
@@ -299,11 +341,17 @@ export const PlansScreen: React.FC = () => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>CREAR PLAN DE ENTRENAMIENTO</Text>
-                <Text style={styles.modalSubtitle}>Configura el nombre, tiempo y precio de la membresía</Text>
+                <Text style={styles.modalTitle}>
+                  {planAEditar ? 'EDITAR PLAN DE ENTRENAMIENTO' : 'CREAR PLAN DE ENTRENAMIENTO'}
+                </Text>
+                <Text style={styles.modalSubtitle}>
+                  {planAEditar
+                    ? 'Modifica el nombre, tiempo o precio de la membresía'
+                    : 'Configura el nombre, tiempo y precio de la membresía'}
+                </Text>
               </View>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={28} color="#94A3B8" />
+                <Ionicons name="close" size={26} color="#64748B" />
               </TouchableOpacity>
             </View>
 
@@ -363,11 +411,11 @@ export const PlansScreen: React.FC = () => {
               </View>
 
               <View style={styles.previewBox}>
-                <Ionicons name="information-circle-outline" size={20} color="#0284C7" style={{ marginRight: 8 }} />
+                <Ionicons name="information-circle-outline" size={20} color="#002566" style={{ marginRight: 8 }} />
                 <Text style={styles.previewText}>
                   El socio que contrate este plan tendrá acceso durante{' '}
-                  <Text style={{ color: '#38BDF8', fontWeight: '800' }}>{duracionDias || '0'} días</Text> por un monto de{' '}
-                  <Text style={{ color: POS_COLORS.primaryDark, fontWeight: '900' }}>
+                  <Text style={{ color: '#002566', fontWeight: '800' }}>{duracionDias || '0'} días</Text> por un monto de{' '}
+                  <Text style={{ color: '#10B981', fontWeight: '900' }}>
                     {precio ? formatearMonto(parseFloat(precio) || 0) : 'Gs. 0'}
                   </Text>.
                 </Text>
@@ -375,13 +423,15 @@ export const PlansScreen: React.FC = () => {
 
               <TouchableOpacity
                 style={[styles.btnGuardar, guardando && styles.btnDisabled]}
-                onPress={handleCrearPlan}
+                onPress={handleGuardarPlan}
                 disabled={guardando}
               >
                 {guardando ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.btnGuardarText}>GUARDAR Y HABILITAR PLAN</Text>
+                  <Text style={styles.btnGuardarText}>
+                    {planAEditar ? 'ACTUALIZAR PLAN' : 'GUARDAR Y HABILITAR PLAN'}
+                  </Text>
                 )}
               </TouchableOpacity>
             </ScrollView>
@@ -395,7 +445,7 @@ export const PlansScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0B0F19',
+    backgroundColor: colors.background,
     padding: 24,
   },
   header: {
@@ -422,10 +472,15 @@ const styles = StyleSheet.create({
   btnNuevo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0284C7',
+    backgroundColor: '#002566',
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
   },
   btnNuevoText: {
     color: '#FFFFFF',
@@ -440,16 +495,21 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#1E293B',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
     borderLeftWidth: 5,
     marginHorizontal: 5,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 16,
     fontWeight: '700',
     color: POS_COLORS.muted,
     letterSpacing: -0.35,
@@ -458,7 +518,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 26,
     fontWeight: '900',
-    color: POS_COLORS.primaryDark,
+    color: '#002566',
     letterSpacing: -0.5,
   },
   listContainer: {
@@ -466,12 +526,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   planCard: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 18,
     marginBottom: 14,
     borderWidth: 1.5,
-    borderColor: '#1E293B',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   planCardInactivo: {
     opacity: 0.65,
@@ -537,9 +602,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#1E293B',
+    borderTopWidth: 1.5,
+    borderTopColor: '#F1F5F9',
     paddingTop: 14,
+  },
+  cardButtonsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  btnEditar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 37, 102, 0.08)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 37, 102, 0.2)',
+  },
+  btnEditarText: {
+    color: '#002566',
+    fontSize: 12,
+    fontWeight: '800',
   },
   btnEstado: {
     flexDirection: 'row',
@@ -554,8 +639,8 @@ const styles = StyleSheet.create({
     borderColor: '#10B98150',
   },
   btnEstadoInactivo: {
-    backgroundColor: '#1E293B',
-    borderColor: '#334155',
+    backgroundColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
   },
   btnEstadoText: {
     fontSize: 12,
@@ -605,7 +690,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(5, 10, 20, 0.85)',
+    backgroundColor: 'rgba(0, 37, 102, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -614,30 +699,35 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 580,
     maxHeight: '92%',
-    backgroundColor: '#0F172A',
-    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
     borderWidth: 1.5,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     padding: 24,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#F1F5F9',
     paddingBottom: 14,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: POS_COLORS.ink,
+    color: '#002566',
     letterSpacing: -0.5,
   },
   modalSubtitle: {
     fontSize: 13,
-    color: POS_COLORS.muted,
+    color: '#64748B',
     fontWeight: '600',
     letterSpacing: -0.35,
     marginTop: 2,
@@ -648,19 +738,20 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '700',
-    color: POS_COLORS.muted,
+    color: '#334155',
     marginBottom: 8,
     marginTop: 10,
   },
   input: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#334155',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: '#F8FAFC',
+    color: '#002566',
     fontSize: 15,
+    fontWeight: '700',
   },
   rowInputs: {
     flexDirection: 'row',
@@ -675,18 +766,18 @@ const styles = StyleSheet.create({
   periodicidadBtn: {
     paddingVertical: 9,
     paddingHorizontal: 14,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     borderRadius: 10,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#334155',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
   },
   periodicidadBtnActive: {
-    backgroundColor: '#0284C7',
-    borderColor: '#FFFFFF',
+    backgroundColor: '#002566',
+    borderColor: '#002566',
   },
   periodicidadText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontWeight: '700',
     fontSize: 12,
   },
@@ -696,34 +787,41 @@ const styles = StyleSheet.create({
   previewBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0284C715',
+    backgroundColor: 'rgba(0, 37, 102, 0.04)',
     padding: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#0284C740',
+    borderColor: '#E2E8F0',
     marginTop: 16,
     marginBottom: 20,
   },
   previewText: {
     flex: 1,
-    color: '#E2E8F0',
+    color: '#334155',
     fontSize: 13,
     lineHeight: 18,
+    fontWeight: '600',
   },
   btnGuardar: {
-    backgroundColor: '#0284C7',
-    paddingVertical: 16,
+    backgroundColor: '#002566',
+    paddingVertical: 15,
     borderRadius: 14,
     alignItems: 'center',
     marginBottom: 16,
+    shadowColor: '#002566',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   btnDisabled: {
-    backgroundColor: '#334155',
+    backgroundColor: '#94A3B8',
+    shadowOpacity: 0,
   },
   btnGuardarText: {
     color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 16,
-    letterSpacing: 1,
+    fontWeight: '900',
+    fontSize: 15,
+    letterSpacing: 0.8,
   },
 });

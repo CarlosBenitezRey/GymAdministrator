@@ -12,7 +12,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { AccessHeader } from '../components/access/AccessHeader';
 import { NumericKeypad } from '../components/access/NumericKeypad';
-import { CheckinResultCard } from '../components/access/CheckinResultCard';
 import { AdminLoginModal } from '../components/access/AdminLoginModal';
 import {
   CiVerificationIndicator,
@@ -23,8 +22,10 @@ import {
   BiometricStatus,
 } from '../components/access/BiometricIndicator';
 import { AttributionFooter } from '../components/access/AttributionFooter';
+import { WelcomeResultCard } from '../components/access/WelcomeResultCard';
 import { checkinService } from '../services/CheckinService';
 import { CheckinResult } from '../models';
+import colors from '../theme';
 
 interface AccessScreenProps {
   onOpenStaff?: () => void;
@@ -34,7 +35,7 @@ export const AccessScreen: React.FC<AccessScreenProps> = ({ onOpenStaff }) => {
   const [ci, setCi] = useState('');
   const [loading, setLoading] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<CiVerificationStatus>('idle');
-  const [result, setResult] = useState<CheckinResult | null>(null);
+  const [activeResult, setActiveResult] = useState<CheckinResult | null>(null);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
 
   const { width } = useWindowDimensions();
@@ -44,8 +45,14 @@ export const AccessScreen: React.FC<AccessScreenProps> = ({ onOpenStaff }) => {
   useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const handleKeyDown = (e: KeyboardEvent) => {
-        // Si está cargando, mostrando resultado, o el modal de login admin está abierto, ignorar
-        if (loading || result !== null || showAdminLogin) return;
+        // Si está cargando o el modal de login admin está abierto, ignorar
+        if (loading || showAdminLogin) return;
+
+        // Si hay un card de resultado activo y el usuario teclea, lo cerramos para el siguiente
+        if (activeResult !== null) {
+          setActiveResult(null);
+          setVerificationStatus('idle');
+        }
 
         if (e.key >= '0' && e.key <= '9') {
           setVerificationStatus('idle');
@@ -64,9 +71,10 @@ export const AccessScreen: React.FC<AccessScreenProps> = ({ onOpenStaff }) => {
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [ci, loading, result, showAdminLogin]);
+  }, [ci, loading, activeResult, showAdminLogin]);
 
   const handleKeyPress = (char: string) => {
+    if (activeResult) setActiveResult(null);
     if (verificationStatus !== 'idle') setVerificationStatus('idle');
     if (ci.length < 10) {
       setCi((prev) => prev + char);
@@ -74,11 +82,13 @@ export const AccessScreen: React.FC<AccessScreenProps> = ({ onOpenStaff }) => {
   };
 
   const handleDelete = () => {
+    if (activeResult) setActiveResult(null);
     if (verificationStatus !== 'idle') setVerificationStatus('idle');
     setCi((prev) => prev.slice(0, -1));
   };
 
   const handleClear = () => {
+    if (activeResult) setActiveResult(null);
     if (verificationStatus !== 'idle') setVerificationStatus('idle');
     setCi('');
   };
@@ -88,6 +98,7 @@ export const AccessScreen: React.FC<AccessScreenProps> = ({ onOpenStaff }) => {
     if (!ciAEnviar || loading) return;
 
     setLoading(true);
+    setActiveResult(null);
     setVerificationStatus('verifying');
 
     try {
@@ -100,15 +111,24 @@ export const AccessScreen: React.FC<AccessScreenProps> = ({ onOpenStaff }) => {
       const esValido = res.estado === 'vigente' || res.estado === 'por_vencer';
       setVerificationStatus(esValido ? 'success' : 'error');
 
-      // Esperamos a que se aprecie el círculo cerrándose rápidamente y revelando el check o X
+      // Mostramos el card de resultado debajo de CiVerificationIndicator por 5 segundos
       setTimeout(() => {
-        setResult(res);
+        setActiveResult(res);
         setCi('');
-      }, 1000);
+      }, esValido ? 250 : 350);
     } catch (error) {
       console.error('Error al procesar checkin:', error);
       setVerificationStatus('error');
-      setTimeout(() => setVerificationStatus('idle'), 2000);
+      setTimeout(() => {
+        setActiveResult({
+          encontrado: false,
+          ci: ciAEnviar,
+          estado: 'no_encontrado',
+          mensaje: 'Error de conexión al verificar el acceso.',
+          timestamp: new Date(),
+        });
+        setCi('');
+      }, 350);
     } finally {
       setLoading(false);
     }
@@ -132,9 +152,19 @@ export const AccessScreen: React.FC<AccessScreenProps> = ({ onOpenStaff }) => {
             { flexDirection: isWide ? 'row' : 'column' },
           ]}
         >
-          {/* Panel Izquierdo: Control de Acceso con Círculo de Verificación Animado */}
+          {/* Panel Izquierdo: Control de Acceso con Círculo de Verificación Animado + Card de Resultado */}
           <View style={styles.iconsIndicatorContainer}>
             <CiVerificationIndicator status={verificationStatus} />
+            {activeResult && (
+              <WelcomeResultCard
+                result={activeResult}
+                durationSeconds={5}
+                onDismiss={() => {
+                  setActiveResult(null);
+                  setVerificationStatus('idle');
+                }}
+              />
+            )}
           </View>
 
           {/* Panel Derecho: Display del C.I. y Teclado Numérico */}
@@ -181,16 +211,6 @@ export const AccessScreen: React.FC<AccessScreenProps> = ({ onOpenStaff }) => {
         </View>
       </ScrollView>
 
-      {/* Modal de resultado a pantalla completa */}
-      <CheckinResultCard
-        result={result}
-        onDismiss={() => {
-          setResult(null);
-          setVerificationStatus('idle');
-        }}
-        autoCloseSeconds={25}
-      />
-
       {/* Modal de Login / PIN de Administrador */}
       <AdminLoginModal
         visible={showAdminLogin}
@@ -207,7 +227,7 @@ export const AccessScreen: React.FC<AccessScreenProps> = ({ onOpenStaff }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#ffffffdb',
+    backgroundColor: colors.background,
   },
   scrollContainer: {
     flexGrow: 1,

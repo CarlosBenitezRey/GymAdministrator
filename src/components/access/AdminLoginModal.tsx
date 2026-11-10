@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import colors from '../../theme';
 
 interface AdminLoginModalProps {
   visible: boolean;
@@ -132,10 +133,10 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
               <View style={styles.titleBadge}>
                 <Ionicons
                   name={isSuccess ? 'checkmark-circle' : 'shield-checkmark'}
-                  size={18}
-                  color={isSuccess ? '#10B981' : '#0284C7'}
+                  size={22}
+                  color={isSuccess ? '#10B981' : '#000000ff'}
                 />
-                <Text style={styles.title}>Acceso</Text>
+                <Text style={styles.title}>Panel de Administracion</Text>
               </View>
 
               <TouchableOpacity
@@ -172,7 +173,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                   setError(null);
                   setPin(text);
                 }}
-                placeholder="Código / PIN"
+                placeholder=""
                 placeholderTextColor="#94A3B8"
                 secureTextEntry={!showPin}
                 keyboardType="default"
@@ -190,8 +191,8 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
               >
                 <Ionicons
                   name={showPin ? 'eye-outline' : 'eye-off-outline'}
-                  size={20}
-                  color={showPin ? '#38BDF8' : '#94A3B8'}
+                  size={19}
+                  color={showPin ? '#FFFFFF' : '#94A3B8'}
                 />
               </TouchableOpacity>
             </View>
@@ -254,16 +255,10 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <>
-                  <Ionicons name="log-in-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
                   <Text style={styles.loginBtnText}>ACCEDER</Text>
                 </>
               )}
             </TouchableOpacity>
-
-            {/* Pista del PIN */}
-            <View style={styles.hintContainer}>
-              <Text style={styles.hintText}>PIN: <Text style={styles.hintCode}>1234</Text></Text>
-            </View>
           </View>
         </View>
       </View>
@@ -289,7 +284,7 @@ const styles = StyleSheet.create({
     right: 26,
     width: 13,
     height: 13,
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.background,
     borderColor: '#334155',
     borderTopWidth: 1.5,
     borderLeftWidth: 1.5,
@@ -298,7 +293,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '100%',
-    backgroundColor: '#0F172A',
+    backgroundColor: colors.background,
     borderRadius: 18,
     borderWidth: 1.5,
     borderColor: '#334155',
@@ -324,7 +319,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: colors.backgroundHeader,
     letterSpacing: -0.35,
     marginLeft: 6,
   },
@@ -379,8 +374,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1.5,
     borderColor: '#475569',
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     marginBottom: 10,
+    overflow: 'hidden',
   },
   inputError: {
     borderColor: '#EF4444',
@@ -390,14 +386,21 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
+    minWidth: 0,
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '900',
-    letterSpacing: -0.4,
+    letterSpacing: 2,
     height: '100%',
+    paddingVertical: 0,
+    paddingHorizontal: 4,
+    textAlign: 'left',
   },
   eyeButton: {
-    padding: 4,
+    width: 26,
+    height: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   keypad: {
     width: '100%',
@@ -437,11 +440,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
     height: 38,
-    backgroundColor: '#0284C7',
+    backgroundColor: colors.backgroundHeader,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#0284C7',
+    shadowColor: '#000000ff',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.35,
     shadowRadius: 6,

@@ -17,7 +17,7 @@ import { alumnoService } from '../services/AlumnoService';
 import { planRepository } from '../repositories/PlanRepository';
 import { membresiaService } from '../services/MembresiaService';
 import { Alumno, Plan } from '../models';
-import { POS_COLORS, POS_TYPOGRAPHY } from '../theme';
+import colors, { POS_COLORS, POS_TYPOGRAPHY } from '../theme';
 
 export const StudentsScreen: React.FC = () => {
   const [alumnos, setAlumnos] = useState<Alumno[]>([]);
@@ -213,25 +213,18 @@ export const StudentsScreen: React.FC = () => {
         </View>
 
         <View style={styles.alumnoInfo}>
-          <View style={styles.nameRow}>
-            <Text style={styles.alumnoNombre}>{item.nombre_completo}</Text>
-            <View style={[styles.badgeEstado, { borderColor: badgeColor, backgroundColor: badgeColor + '15' }]}>
-              <Ionicons name={iconName} size={14} color={badgeColor} style={{ marginRight: 4 }} />
-              <Text style={[styles.badgeEstadoText, { color: badgeColor }]}>{badgeText}</Text>
-            </View>
-          </View>
+          <Text style={styles.alumnoNombre}>{item.nombre_completo}</Text>
 
           <Text style={styles.alumnoSub}>
-            C.I.: <Text style={{ color: '#F8FAFC', fontWeight: '700' }}>{item.ci}</Text>
+            C.I.: <Text style={{ color: POS_COLORS.mutedDark, fontWeight: '700' }}>{item.ci}</Text>
             {item.telefono ? ` | Tel: ${item.telefono}` : ''}
           </Text>
 
           {/* Ficha de plan activo */}
           <View style={styles.planInfoRow}>
-            <Ionicons name="barbell-outline" size={16} color="#38BDF8" style={{ marginRight: 6 }} />
             <Text style={styles.planInfoText}>
               {item.plan_actual_nombre ? (
-                <>Plan: <Text style={{ color: '#38BDF8', fontWeight: '700' }}>{item.plan_actual_nombre}</Text> (Vence: {item.plan_actual_vencimiento})</>
+                <>Plan: <Text style={{ color: POS_COLORS.mutedDark, fontWeight: '700' }}>{item.plan_actual_nombre}</Text> (Vence: {item.plan_actual_vencimiento})</>
               ) : (
                 <Text style={{ color: '#EF4444' }}>Sin plan de entrenamiento activo</Text>
               )}
@@ -245,17 +238,32 @@ export const StudentsScreen: React.FC = () => {
           )}
         </View>
 
-        {/* Botón rápido Asignar/Renovar Plan */}
-        <TouchableOpacity
-          style={styles.btnAsignarPlan}
-          onPress={() => abrirModalAsignarPlan(item)}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="card-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-          <Text style={styles.btnAsignarPlanText}>
-            {item.plan_actual_nombre ? 'Renovar' : 'Asignar Plan'}
-          </Text>
-        </TouchableOpacity>
+        {/* Contenedor de Estado y Acción alineados */}
+        <View style={styles.rightActionsContainer}>
+          <View style={[styles.badgeEstado, { borderColor: badgeColor, backgroundColor: badgeColor + '15' }]}>
+            <Ionicons name={iconName} size={15} color={badgeColor} style={{ marginRight: 5 }} />
+            <Text style={[styles.badgeEstadoText, { color: badgeColor }]}>{badgeText}</Text>
+          </View>
+
+          {/* Si está al día (vigente), no se muestra el botón de renovar */}
+          {estado !== 'vigente' && (
+            <TouchableOpacity
+              style={styles.btnAsignarPlan}
+              onPress={() => abrirModalAsignarPlan(item)}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={item.plan_actual_nombre ? 'refresh-outline' : 'card-outline'}
+                size={14}
+                color="#FFFFFF"
+                style={{ marginRight: 5 }}
+              />
+              <Text style={styles.btnAsignarPlanText}>
+                {item.plan_actual_nombre ? 'Renovar' : 'Asignar Plan'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     );
   };
@@ -305,11 +313,11 @@ export const StudentsScreen: React.FC = () => {
       {!haBuscado ? (
         <View style={styles.initialContainer}>
           <View style={styles.initialIconBox}>
-            <Ionicons name="id-card-outline" size={60} color="#38BDF8" />
+            <Ionicons name="id-card-outline" size={60} color="#002566" />
           </View>
           <Text style={styles.initialTitle}>Búsqueda de Socios</Text>
           <Text style={styles.initialSubtitle}>
-            Ingresa un número de C.I. o nombre y pulsa <Text style={{ color: '#ffffffff', fontWeight: '700' }}>Buscar</Text> para consultar la ficha del alumno, o consulta el padrón completo.
+            Ingresa un número de C.I. o nombre y pulsa <Text style={{ color: POS_COLORS.ink, fontWeight: '700' }}>Buscar</Text> para consultar la ficha del alumno, o consulta el padrón completo.
           </Text>
           <TouchableOpacity
             style={styles.btnInitialVerTodos}
@@ -346,7 +354,7 @@ export const StudentsScreen: React.FC = () => {
           <View style={styles.resultsInfoRow}>
             <Text style={styles.resultsCountText}>
               {criterioActual ? `Resultados para "${criterioActual}": ` : 'Total de socios: '}
-              <Text style={{ color: '#ffffffff', fontWeight: '800' }}>{alumnos.length} socio(s)</Text>
+              <Text style={{ color: '#002566', fontWeight: '800' }}>{alumnos.length} socio(s)</Text>
             </Text>
             <TouchableOpacity onPress={handleLimpiarBusqueda}>
               <Text style={styles.btnLimpiarText}>Limpiar búsqueda</Text>
@@ -369,7 +377,7 @@ export const StudentsScreen: React.FC = () => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>REGISTRAR NUEVO SOCIO</Text>
               <TouchableOpacity onPress={() => setModalNuevoVisible(false)}>
-                <Ionicons name="close" size={28} color="#94A3B8" />
+                <Ionicons name="close" size={26} color="#64748B" />
               </TouchableOpacity>
             </View>
 
@@ -440,7 +448,7 @@ export const StudentsScreen: React.FC = () => {
                         <Ionicons
                           name={isSelected ? "radio-button-on" : "radio-button-off"}
                           size={20}
-                          color={isSelected ? "#0284C7" : "#64748B"}
+                          color={isSelected ? "#002566" : "#94A3B8"}
                         />
                       </View>
                       <Text style={styles.planCardPrice}>{formatearMonto(p.precio)}</Text>
@@ -525,18 +533,23 @@ export const StudentsScreen: React.FC = () => {
       {/* MODAL 2: ASIGNAR / RENOVAR PLAN A ALUMNO EXISTENTE */}
       <Modal visible={modalAsignarVisible} animationType="fade" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxWidth: 480 }]}>
+          <View style={[styles.modalContent, { maxWidth: 500 }]}>
             <View style={styles.modalHeader}>
               <View>
                 <Text style={styles.modalTitle}>ASIGNAR / RENOVAR PLAN</Text>
-                <Text style={styles.subtitleModal}>Socio: {alumnoParaAsignar?.nombre_completo}</Text>
+                <Text style={styles.subtitleModal}>
+                  Socio: <Text style={{ color: '#002566', fontWeight: '900' }}>{alumnoParaAsignar?.nombre_completo}</Text>
+                </Text>
               </View>
               <TouchableOpacity onPress={() => setModalAsignarVisible(false)}>
-                <Ionicons name="close" size={28} color="#94A3B8" />
+                <Ionicons name="close" size={26} color="#64748B" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={{ maxHeight: 380, marginBottom: 16 }}>
+            <ScrollView
+              style={{ maxHeight: 380, marginBottom: 16 }}
+              showsVerticalScrollIndicator={false}
+            >
               <Text style={styles.sublabel}>Elige el plan a activar:</Text>
               {planes.map((p) => {
                 const isSelected = planParaAsignarId === p.id;
@@ -554,7 +567,7 @@ export const StudentsScreen: React.FC = () => {
                       <Ionicons
                         name={isSelected ? "radio-button-on" : "radio-button-off"}
                         size={20}
-                        color={isSelected ? "#0284C7" : "#64748B"}
+                        color={isSelected ? "#002566" : "#94A3B8"}
                       />
                     </View>
                     <Text style={styles.planCardPrice}>{formatearMonto(p.precio)}</Text>
@@ -585,7 +598,7 @@ export const StudentsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0B0F19',
+    backgroundColor: colors.background,
     padding: 24,
   },
   header: {
@@ -609,20 +622,23 @@ const styles = StyleSheet.create({
   },
   subtitleModal: {
     fontSize: 14,
-    color: POS_COLORS.primary,
+    color: '#64748B',
     fontWeight: '700',
     letterSpacing: -0.35,
-    marginTop: 2,
+    marginTop: 3,
   },
   btnNuevo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#002566',
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#1E293B',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
   },
   btnNuevoText: {
     color: '#FFFFFF',
@@ -633,12 +649,15 @@ const styles = StyleSheet.create({
   btnBuscar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#002566',
     paddingHorizontal: 20,
     paddingVertical: 13,
     borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#1E293B',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
   },
   btnBuscarText: {
     color: '#FFFFFF',
@@ -657,30 +676,32 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#1E293B',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
   },
   searchInput: {
     flex: 1,
-    color: '#F8FAFC',
+    color: '#002566',
     fontSize: 15,
+    fontWeight: '700',
   },
   btnVerTodos: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#002566',
     paddingHorizontal: 18,
     paddingVertical: 13,
     borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#38BDF8',
   },
   btnVerTodosText: {
-    color: '#38BDF8',
+    color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 14,
   },
@@ -689,12 +710,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 30,
-    backgroundColor: '#0F172A',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
     marginVertical: 10,
     marginHorizontal: 20,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   initialIconBox: {
     width: 100,
@@ -730,11 +756,11 @@ const styles = StyleSheet.create({
   btnInitialVerTodos: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0284C7',
+    backgroundColor: colors.primaryButton,
     paddingHorizontal: 22,
     paddingVertical: 14,
     borderRadius: 14,
-    shadowColor: '#0284C7',
+    shadowColor: '#000000ff',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -770,18 +796,23 @@ const styles = StyleSheet.create({
   alumnoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#1E293B',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#1E293B',
+    backgroundColor: 'rgba(0, 37, 102, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
@@ -800,14 +831,21 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: POS_COLORS.ink,
     letterSpacing: -0.4,
+    marginBottom: 4,
+  },
+  rightActionsContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginLeft: 14,
+    gap: 10,
   },
   badgeEstado: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1.2,
   },
   badgeEstadoText: {
     fontSize: 11,
@@ -840,16 +878,13 @@ const styles = StyleSheet.create({
   btnAsignarPlan: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#002566',
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#38BDF8',
-    marginLeft: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
   },
   btnAsignarPlanText: {
-    color: '#38BDF8',
+    color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 12,
   },
@@ -881,7 +916,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(5, 10, 20, 0.85)',
+    backgroundColor: 'rgba(0, 37, 102, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -890,25 +925,30 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 580,
     maxHeight: '92%',
-    backgroundColor: '#0F172A',
-    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
     borderWidth: 1.5,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     padding: 24,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#F1F5F9',
     paddingBottom: 14,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: POS_COLORS.ink,
+    color: '#002566',
     letterSpacing: -0.5,
   },
   modalScroll: {
@@ -917,33 +957,34 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '900',
-    color: POS_COLORS.ink,
+    color: '#002566',
     letterSpacing: -0.4,
     marginTop: 16,
     marginBottom: 8,
   },
   sublabel: {
-    fontSize: 12,
-    color: POS_COLORS.muted,
+    fontSize: 13,
+    color: '#64748B',
     fontWeight: '600',
     marginBottom: 12,
   },
   label: {
     fontSize: 13,
     fontWeight: '700',
-    color: POS_COLORS.muted,
+    color: '#334155',
     marginBottom: 6,
     marginTop: 8,
   },
   input: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#334155',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: '#F8FAFC',
+    color: '#002566',
     fontSize: 15,
+    fontWeight: '700',
   },
   rowInputs: {
     flexDirection: 'row',
@@ -958,19 +999,19 @@ const styles = StyleSheet.create({
   sexoBtn: {
     flex: 1,
     paddingVertical: 10,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     borderRadius: 10,
     alignItems: 'center',
     marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: '#334155',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
   },
   sexoBtnActive: {
-    backgroundColor: '#0284C7',
-    borderColor: '#ffffffff',
+    backgroundColor: '#002566',
+    borderColor: '#002566',
   },
   sexoText: {
-    color: POS_COLORS.muted,
+    color: '#64748B',
     fontWeight: '700',
     fontSize: 13,
   },
@@ -981,16 +1022,17 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   planCardOption: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1.5,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   planCardSelected: {
-    borderColor: '#0284C7',
-    backgroundColor: '#064E3B25',
+    borderColor: '#002566',
+    backgroundColor: 'rgba(0, 37, 102, 0.04)',
+    borderWidth: 2,
   },
   planCardHeader: {
     flexDirection: 'row',
@@ -1001,54 +1043,60 @@ const styles = StyleSheet.create({
   planCardTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: POS_COLORS.ink,
+    color: '#002566',
     letterSpacing: -0.35,
   },
   planCardTitleSelected: {
-    color: POS_COLORS.primaryDark,
+    color: '#002566',
   },
   planCardPrice: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '900',
-    color: POS_COLORS.primaryDark,
+    color: '#10B981',
     letterSpacing: -0.5,
     marginBottom: 2,
   },
   planCardDuration: {
     fontSize: 12,
-    color: POS_COLORS.muted,
+    color: '#64748B',
     fontWeight: '600',
   },
   imcBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#064E3B20',
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
     padding: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#10B98140',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
     marginTop: 10,
   },
   imcText: {
-    color: POS_COLORS.muted,
+    color: '#065F46',
     fontWeight: '600',
     fontSize: 14,
   },
   btnGuardar: {
-    backgroundColor: '#0284C7',
-    paddingVertical: 16,
+    backgroundColor: '#002566',
+    paddingVertical: 15,
     borderRadius: 14,
     alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 20,
+    marginTop: 20,
+    marginBottom: 10,
+    shadowColor: '#002566',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   btnDisabled: {
-    backgroundColor: '#334155',
+    backgroundColor: '#94A3B8',
+    shadowOpacity: 0,
   },
   btnGuardarText: {
     color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 16,
-    letterSpacing: 1,
+    fontWeight: '900',
+    fontSize: 15,
+    letterSpacing: 0.8,
   },
 });

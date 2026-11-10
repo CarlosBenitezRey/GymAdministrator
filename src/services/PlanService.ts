@@ -47,6 +47,33 @@ export class PlanService {
     return data as Plan;
   }
 
+  async actualizarPlan(
+    id: string,
+    datos: {
+      nombre: string;
+      periodicidad: Periodicidad;
+      duracion_dias: number;
+      precio: number;
+    }
+  ): Promise<Plan> {
+    const nombreLimpio = datos.nombre.trim();
+    if (!nombreLimpio) throw new Error('El nombre del plan es obligatorio.');
+    if (datos.precio <= 0) throw new Error('El precio debe ser mayor a 0 Gs.');
+    if (datos.duracion_dias <= 0) throw new Error('La duración debe ser al menos de 1 día.');
+
+    const { data, error } = await planRepository.actualizar(id, {
+      nombre: nombreLimpio,
+      periodicidad: datos.periodicidad,
+      duracion_dias: datos.duracion_dias,
+      precio: datos.precio,
+    });
+    if (error) {
+      console.error('Error al actualizar plan:', error);
+      throw error;
+    }
+    return data as Plan;
+  }
+
   async alternarEstadoPlan(id: string, nuevoEstadoActivo: boolean): Promise<Plan> {
     const { data, error } = await planRepository.actualizar(id, { activo: nuevoEstadoActivo });
     if (error) {

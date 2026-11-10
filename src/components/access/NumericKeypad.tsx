@@ -79,7 +79,6 @@ export const NumericKeypad: React.FC<Props> = ({
         disabled={disabled || !canSubmit}
         activeOpacity={0.8}
       >
-        <Ionicons name="enter-outline" size={30} color="#FFFFFF" style={{ marginRight: 10 }} />
         <Text style={styles.submitText}>VERIFICAR</Text>
       </TouchableOpacity>
     </View>

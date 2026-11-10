@@ -11,7 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { checkinService } from '../services/CheckinService';
 import { Asistencia } from '../models';
-import { POS_COLORS, POS_TYPOGRAPHY } from '../theme';
+import colors, { POS_COLORS, POS_TYPOGRAPHY } from '../theme';
 import { StudentsScreen } from './StudentsScreen';
 import { PlansScreen } from './PlansScreen';
 
@@ -113,7 +113,10 @@ export const ReceptionScreen: React.FC<ReceptionScreenProps> = ({ onExitToAccess
     <SafeAreaView style={styles.safeArea}>
       {/* Barra superior de administración y recepción */}
       <View style={styles.topAdminBar}>
-        <View style={styles.brandContainer}>
+        <View style={styles.logoRow}>
+          <View style={styles.logoBadge}>
+            <Ionicons name="barbell" size={30} color="#FFFFFF" />
+          </View>
           <View>
             <Text style={styles.brandTitle}>SANSON GYM</Text>
             <Text style={styles.brandSubtitle}>PANEL DE ADMINISTRACIÓN</Text>
@@ -265,33 +268,52 @@ export const ReceptionScreen: React.FC<ReceptionScreenProps> = ({ onExitToAccess
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0B0F19',
+    backgroundColor: colors.background,
   },
   topAdminBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#002566',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderBottomWidth: 1.5,
-    borderBottomColor: '#1E293B',
+    paddingHorizontal: 28,
+    paddingVertical: 18,
+    borderBottomEndRadius: 12,
+    borderBottomStartRadius: 12,
+    borderBottomWidth: 1.2,
+    borderBottomColor: '#ffffffff',
+    shadowColor: '#ffffffff',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
   },
-  brandContainer: {
+  logoRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  logoBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#1E293B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
   brandTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '900',
     color: '#FFFFFF',
-    letterSpacing: 1.5,
+    letterSpacing: -0.5,
   },
   brandSubtitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#ffffff91',
-    letterSpacing: 1,
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#10B981',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginTop: 2,
   },
   navTabs: {
     flexDirection: 'row',
@@ -336,6 +358,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     padding: 24,
+    backgroundColor: colors.background,
   },
   subHeader: {
     flexDirection: 'row',
@@ -365,6 +388,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#334155',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
   },
   refreshText: {
     color: '#F8FAFC',
@@ -378,13 +406,18 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#1E293B',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
     borderLeftWidth: 5,
     marginHorizontal: 5,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
   },
   statLabel: {
     fontSize: 11,
@@ -396,15 +429,20 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 26,
     fontWeight: '900',
-    color: '#F8FAFC',
+    color: '#002566',
   },
   listContainer: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#1E293B',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
     padding: 18,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
   },
   listHeader: {
     flexDirection: 'row',
@@ -423,17 +461,17 @@ const styles = StyleSheet.create({
   cardItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F8FAFC',
     padding: 14,
     borderRadius: 14,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#334155',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
   },
   timeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#EDF2F7',
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 8,

@@ -6,17 +6,20 @@ export const colors = {
   primary: '#0284C7',
   backgroundHeader: '#002566',
   primaryButton: '#002566',
-  background: '#0F172A',
+  background: '#DBDBDB',
   surface: '#1E293B',
   text: '#FFFFFF',          // Blanco puro para títulos y elementos de alto contraste
   textMuted: '#94A3B8',     // Blanco medio gris para subtítulos, etiquetas y secundarios
+  blackSubtitle: '#0000000c',
   success: '#10B981',       // Verde para precios, montos activos y acceso permitido
   danger: '#EF4444',
 } as const;
 
 export const POS_COLORS = {
-  ink: '#FFFFFF',           // Blanco para títulos
-  muted: '#94A3B8',         // Blanco medio gris para subtítulos
+  ink: '#002566',           // Azul rey para títulos
+  muted: '#64748B',         // Blanco medio gris para subtítulos
+  mutedDark: '#334155',
+  blackSubtitle: '#0000000c',
   primaryDark: '#10B981',   // Verde destacado para precios y montos
   primary: '#0284C7',
 } as const;
