@@ -87,6 +87,51 @@ export class CheckinService {
     }
   }
 
+  /**
+   * Obtiene exclusivamente los ingresos registrados en el día actual (desde las 00:00 hs)
+   * y limpia en segundo plano los registros de días anteriores.
+   */
+  async obtenerIngresosDeHoy(limit: number = 100): Promise<Asistencia[]> {
+    // Limpieza en segundo plano de registros de días anteriores
+    this.limpiarRegistrosAnteriores().catch((err) =>
+      console.warn('Aviso al limpiar asistencias anteriores:', err)
+    );
+
+    const { data, error } = await checkinRepository.obtenerAsistenciasDeHoy(limit);
+    if (error) {
+      console.error('Error al obtener asistencias de hoy:', error);
+      return [];
+    }
+    return (data || []).map((a: any) => ({
+      ...a,
+      alumno: a.alumnos || a.alumno,
+      alumnos: a.alumnos || a.alumno,
+    })) as Asistencia[];
+  }
+
+  /**
+   * Limpia de la base de datos las asistencias de días previos a hoy
+   */
+  async limpiarRegistrosAnteriores(): Promise<void> {
+    try {
+      await checkinRepository.limpiarAsistenciasDiasAnteriores();
+    } catch (err) {
+      console.error('Error al limpiar registros de días anteriores:', err);
+    }
+  }
+
+  /**
+   * Elimina todos los registros de asistencias (para reinicio manual de la pantalla de recepción)
+   */
+  async limpiarTodosLosRegistros(): Promise<void> {
+    try {
+      await checkinRepository.limpiarTodasLasAsistencias();
+    } catch (err) {
+      console.error('Error al limpiar todas las asistencias:', err);
+      throw err;
+    }
+  }
+
   async obtenerUltimosIngresos(limit: number = 25): Promise<Asistencia[]> {
     const { data, error } = await checkinRepository.obtenerUltimasAsistencias(limit);
     if (error) {

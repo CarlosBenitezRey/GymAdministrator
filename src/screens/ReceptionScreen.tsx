@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   SafeAreaView,
+  Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { checkinService } from '../services/CheckinService';
@@ -28,7 +30,8 @@ export const ReceptionScreen: React.FC<ReceptionScreenProps> = ({ onExitToAccess
   const cargarAsistencias = async () => {
     setLoading(true);
     try {
-      const data = await checkinService.obtenerUltimosIngresos(25);
+      // Obtenemos únicamente las entradas del día de hoy (desde las 00:00 hs)
+      const data = await checkinService.obtenerIngresosDeHoy(100);
       setAsistencias(data);
     } catch (e) {
       console.error('Error al cargar asistencias:', e);
@@ -40,15 +43,79 @@ export const ReceptionScreen: React.FC<ReceptionScreenProps> = ({ onExitToAccess
   useEffect(() => {
     cargarAsistencias();
 
-    // Suscripción Realtime a Supabase
+    // 1. Suscripción Realtime a Supabase: sólo agregar a la lista si corresponde al día de hoy
     const unsuscribe = checkinService.suscribirIngresosEnVivo((nuevaAsistencia) => {
-      setAsistencias((prev) => [nuevaAsistencia, ...prev]);
+      const now = new Date();
+      const inicioHoy = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      const fechaAsistencia = nuevaAsistencia.fecha_hora ? new Date(nuevaAsistencia.fecha_hora) : new Date();
+
+      if (fechaAsistencia >= inicioHoy) {
+        setAsistencias((prev) => [nuevaAsistencia, ...prev]);
+      }
     });
+
+    // 2. Temporizador para reiniciar automáticamente a las 00:00 hs de cada día
+    let midnightTimer: any;
+    const programarLimpiezaMedianoche = () => {
+      const now = new Date();
+      // Próxima medianoche a las 00:00:00.100 hs
+      const proximaMedianoche = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1,
+        0,
+        0,
+        0,
+        100
+      );
+      const msHastaMedianoche = proximaMedianoche.getTime() - now.getTime();
+
+      midnightTimer = setTimeout(() => {
+        // Al llegar a las 00:00 se reinician los contadores y se recargan las entradas del nuevo día
+        setAsistencias([]);
+        cargarAsistencias();
+        programarLimpiezaMedianoche();
+      }, msHastaMedianoche);
+    };
+
+    programarLimpiezaMedianoche();
 
     return () => {
       unsuscribe();
+      if (midnightTimer) clearTimeout(midnightTimer);
     };
   }, []);
+
+  const handleLimpiarControl = () => {
+    const mensaje = '¿Deseas vaciar el registro de entradas y reiniciar los contadores de hoy a cero?';
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const confirmado = window.confirm(mensaje);
+      if (confirmado) {
+        ejecutarLimpieza();
+      }
+    } else {
+      Alert.alert(
+        'Reiniciar Control Diario',
+        mensaje,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Limpiar', style: 'destructive', onPress: ejecutarLimpieza },
+        ]
+      );
+    }
+  };
+
+  const ejecutarLimpieza = async () => {
+    setLoading(true);
+    try {
+      await checkinService.limpiarTodosLosRegistros();
+      setAsistencias([]);
+    } catch (err) {
+      console.error('Error al limpiar registros de asistencias:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const totalHoy = asistencias.length;
   const permitidosHoy = asistencias.filter((a) =>
@@ -201,17 +268,30 @@ export const ReceptionScreen: React.FC<ReceptionScreenProps> = ({ onExitToAccess
           <View style={styles.subHeader}>
             <View>
               <Text style={styles.title}>MONITOR DE ACCESOS</Text>
-              <Text style={styles.subtitle}>Feed en vivo de entradas desde la Terminal de Acceso</Text>
+              <Text style={styles.subtitle}>
+                Control diario de entradas • Se reinicia a las 00:00 hs
+              </Text>
             </View>
 
-            <TouchableOpacity
-              style={styles.refreshButton}
-              onPress={cargarAsistencias}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="refresh-outline" size={18} color="#F8FAFC" style={{ marginRight: 6 }} />
-              <Text style={styles.refreshText}>Actualizar</Text>
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={styles.cleanButton}
+                onPress={handleLimpiarControl}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="trash-outline" size={16} color="#DC2626" style={{ marginRight: 6 }} />
+                <Text style={styles.cleanText}>Limpiar Control</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.refreshButton}
+                onPress={cargarAsistencias}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="refresh-outline" size={18} color="#F8FAFC" style={{ marginRight: 6 }} />
+                <Text style={styles.refreshText}>Actualizar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Tarjetas de métricas rápidas */}
@@ -378,6 +458,31 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: -0.35,
     marginTop: 2,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  cleanButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cleanText: {
+    color: '#DC2626',
+    fontWeight: '700',
+    fontSize: 13,
   },
   refreshButton: {
     flexDirection: 'row',

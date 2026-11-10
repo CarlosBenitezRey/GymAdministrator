@@ -34,6 +34,44 @@ export class CheckinRepository {
       .limit(limit);
   }
 
+  /**
+   * Obtiene exclusivamente las asistencias registradas desde las 00:00:00 hs de hoy
+   */
+  async obtenerAsistenciasDeHoy(limit: number = 100) {
+    const now = new Date();
+    const inicioDelDia = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+
+    return await supabase
+      .from('asistencias')
+      .select('*, alumnos(nombre_completo, ci, telefono)')
+      .gte('fecha_hora', inicioDelDia.toISOString())
+      .order('fecha_hora', { ascending: false })
+      .limit(limit);
+  }
+
+  /**
+   * Elimina de la base de datos las entradas de días anteriores a hoy (anteriores a las 00:00 hs)
+   */
+  async limpiarAsistenciasDiasAnteriores() {
+    const now = new Date();
+    const inicioDelDia = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+
+    return await supabase
+      .from('asistencias')
+      .delete()
+      .lt('fecha_hora', inicioDelDia.toISOString());
+  }
+
+  /**
+   * Elimina todos los registros de asistencias (para reinicio manual del control)
+   */
+  async limpiarTodasLasAsistencias() {
+    return await supabase
+      .from('asistencias')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000');
+  }
+
   suscribirNuevasAsistencias(callback: (asistencia: Asistencia) => void) {
     const channel = supabase
       .channel('asistencias_acceso')

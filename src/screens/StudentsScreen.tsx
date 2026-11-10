@@ -32,7 +32,7 @@ export const StudentsScreen: React.FC = () => {
   const [ci, setCi] = useState('');
   const [nombreCompleto, setNombreCompleto] = useState('');
   const [telefono, setTelefono] = useState('');
-  const [sexo, setSexo] = useState<'M' | 'F' | 'Otro'>('M');
+  const [sexo, setSexo] = useState<'M' | 'F'>('M');
   const [direccion, setDireccion] = useState('');
   const [contactoNombre, setContactoNombre] = useState('');
   const [contactoTelefono, setContactoTelefono] = useState('');
@@ -126,6 +126,7 @@ export const StudentsScreen: React.FC = () => {
       setCi('');
       setNombreCompleto('');
       setTelefono('');
+      setSexo('M');
       setDireccion('');
       setContactoNombre('');
       setContactoTelefono('');
@@ -415,14 +416,14 @@ export const StudentsScreen: React.FC = () => {
 
               <Text style={styles.label}>Sexo</Text>
               <View style={styles.sexoRow}>
-                {(['M', 'F', 'Otro'] as const).map((s) => (
+                {(['M', 'F'] as const).map((s) => (
                   <TouchableOpacity
                     key={s}
                     style={[styles.sexoBtn, sexo === s && styles.sexoBtnActive]}
                     onPress={() => setSexo(s)}
                   >
                     <Text style={[styles.sexoText, sexo === s && styles.sexoTextActive]}>
-                      {s === 'M' ? 'Masculino' : s === 'F' ? 'Femenino' : 'Otro'}
+                      {s === 'M' ? 'Masculino' : 'Femenino'}
                     </Text>
                   </TouchableOpacity>
                 ))}
